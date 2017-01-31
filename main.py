@@ -91,6 +91,26 @@ def install(imageType, fileLocation):
         print("The install failed, We'll try to reboot your device into recovery. Make sure it's working fine.")
         return False
 
+def bootloader(type):
+    if type == "unlock":
+        r("Take a look at your phone.")
+        print("Please use the volume buttons and power button to select 'Yes' on the bootloader message. ")
+        try:
+            info = executeR("sudo fastboot oem unlock")
+            r("Bootloader unlocked!")
+            print("We've unlocked your bootloader, hit the power button on your phone to boot into recovery to flash your ROM :D")
+            print("Note: Factory resetting will have disabled ADB access on your device, you'll have to reenable it to use this tool.")
+            input("Press enter to continue")
+            init("warm")
+            return True
+        except:
+            return False
+    elif type == "lock":
+        try:
+            info = executeR("sudo fastboot oem lock")
+            return True
+        except:
+            return False
 def reboot():
     print("###########################")
     print("Reboot your Device\n1.Reboot System (Boot into Android)\n2.Reboot Fastboot (Reboot into bootloader)\n3.Reboot Recovery (Reboot into recovery)")
@@ -131,7 +151,7 @@ def menu():
     global debug
     global devices
     global system
-    cmds = 7
+    cmds = 8
     if debug == True:
         cmds = cmds + 1
     size = executeR("stty size")
@@ -158,6 +178,9 @@ def menu():
         else:
             string = "PLATFORM: " + platform.system().rstrip().upper() + " | " + deviceName
             stdout(string.rjust(int(size[1])))
+    else:
+        string = "DEVICE VERIFICATION OFF"
+        stdout(string.rjust(int(size[1])))
     stdout('#rootella V: {0}'.format(version))
     sys.stdout.flush()
     print()
@@ -167,6 +190,7 @@ def menu():
     print("3. Temporarily boot TWRP")
     print("4. Flash custom recovery")
     print("5. Unlock system bootloader")
+    print("6. Lock system bootloader")
     print("990. Restart Rootella")
     if debug == True:
         print("999. Debug Menu")
@@ -259,22 +283,48 @@ def menu():
                 system = deviceLoc()
                 if type(system) != bool:
                     if system[0] == "FASTBOOT":
-                        r("Take a look at your phone.")
-                        print("Please use the volume buttons and power button to select 'Yes' on the bootloader message. ")
                         try:
-                            info = executeR("sudo fastboot oem unlock")
-                            r("Bootloader unlocked!")
-                            print("We've unlocked your bootloader, hit the power button on your phone to boot into recovery to flash your ROM :D")
-                            input("Press enter to continue")
-                            init("warm")
+                            bootloader("unlock")
                         except:
-                            print("Something has gone wrong. Reboot your device and make sure it's working correctly.")
-                            input("Press ENTER to continue... ")
-                            init("warm")
+                            r("Something's gone wrong...")
+                            print("Something bad has happend, check your device to make sure it's working.")
+                            input("Press ENTER to continue")
+                            init(warm)
+
                     else:
                         r("Something not right.")
                         print("Something has gone wrong. We'll reboot your phone, make sure it's working.")
                         executeR("sudo fastboot reboot")
+                else:
+                    time.sleep(5)
+    if select == 6:
+        r("Bootloader lock")
+        print("This tool will re-lock your bootloader, it WILL NOT wipe your device, after doing this you won't be able to flash content to your phone.")
+        answer = input("Are you sure you want to continue? [y/N]> ").lower()
+        if answer == "y":
+            r("Rebooting to fastboot")
+            executeR("adb reboot bootloader")
+            r("Waiting for device")
+            for i in range(10):
+                system = deviceLoc()
+                if type(system) != bool:
+                    if system[0] == "FASTBOOT":
+                        r("Locking your bootloader.")
+                        try:
+                            bootloader("lock")
+                            r("Bootloader locked.")
+                            time.sleep(1)
+                            print("Start your device (press the power button), wait for it to boot and hit enter.")
+                            input("Press ENTER to continue. ")
+                            init("warm")
+                        except:
+                            r("Bootloader Failed to lock")
+                            input("Check your phone, it may've locked and told Rootella wrong, then reboot it and press ENTER")
+                            menu()
+                    else:
+                        r("Something's not right.")
+                        print("Your device didn't go to bootloader. We don't know why. Make sure your phone is okay.")
+                        input("Press ENTER to continue. ")
                 else:
                     time.sleep(5)
     if select == 990:
