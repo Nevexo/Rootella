@@ -199,6 +199,8 @@ def menu():
     print(hash)
     select = int(input("Selection> "))
     if select == 0:
+        print("Shutting down the ADB daemon...")
+        executeR("sudo adb kill-server")
         sys.exit("Thanks for using Rootella, see you soon!")
     if select == 1:
         reboot()
