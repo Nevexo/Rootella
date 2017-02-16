@@ -164,15 +164,16 @@ def menu():
     hash = hash[1:]
     print(hash)
     if devices[0] == "RUNNING":
-        productinfo = executeR("sudo adb -s " + str(devices[1]) + " shell getprop ro.product.model")
-        deviceName = ""
-        loop = 0
-        for i in productinfo:
-            if loop == 0:
-                deviceName = i
-            else:
-                deviceName = deviceName + " " + i
-            loop = loop + 1
+        if debug == False:
+            productinfo = executeR("sudo adb -s " + str(devices[1]) + " shell getprop ro.product.model")
+            deviceName = ""
+            loop = 0
+            for i in productinfo:
+                if loop == 0:
+                    deviceName = i
+                else:
+                    deviceName = deviceName + " " + i
+                loop = loop + 1
         if debug == True:
             string = "PLATFORM: " + platform.system().rstrip().upper() + " | DEBUG | " + devices[1]
         else:
@@ -254,6 +255,7 @@ def menu():
                             r("Rebooting device...")
                             executeR("sudo fastboot reboot")
                             r("Waiting for device")
+                            print("We'll wait for a while, if you wiped your device it will take a while to reboot. The device finder may timeout.")
                             time.sleep(1)
                             for i in range(20):
                                 system = deviceLoc()
@@ -389,7 +391,6 @@ def deviceLoc():
         return arr
 def startupChecks():
     global devices
-    devices = deviceLoc()
     global debug
     if debug == True:
         print("Device list (Contains Virtual Device): ")
@@ -445,20 +446,26 @@ def startupChecks():
     else:
         global system
         global supportedDevices
-        system = executeR("sudo adb -s "+str(devices[1])+" shell getprop ro.product.device")
-        if system[0] in supportedDevices:
-            #r(system[0] + " connected!")
-            time.sleep(2)
-            menu()
-        else:
-            if system[0] == "/sbin/sh:":
-                r("Please reboot your device")
-                print("Please reboot your device into Android, we can't verify the device as it's either in temp boot or using an old recovery.")
-                input("Press ENTER to continue... ")
-                init("warm")
+        if debug == False:
+            system = executeR("sudo adb -s "+str(devices[1])+" shell getprop ro.product.device")
+            if system[0] in supportedDevices:
+                r(system[0] + " connected!")
+                time.sleep(1)
+                menu()
             else:
-                r(system[0] + " not supported")
-                print("Your connected device, " + system[0] + " is currently not supported. Sorry!")
-                input("Press ENTER to continue or CTRL + C to exit... ")
-                init("warm")
+                if system[0] == "/sbin/sh:":
+                    r("Please reboot your device")
+                    print("Please reboot your device into Android, we can't verify the device as it's either in temp boot or using an old recovery.")
+                    input("Press ENTER to continue... ")
+                    init("warm")
+                else:
+                    r(system[0] + " not supported")
+                    print("Your connected device, " + system[0] + " is currently not supported. Sorry!")
+                    input("Press ENTER to continue or CTRL + C to exit... ")
+                    init("warm")
+        else:
+            r("Localhost connected!")
+            time.sleep(1)
+            menu()
+
 init("cold")
